@@ -1,0 +1,2 @@
+category_id,type,stock type,name,short_description,indicator,calories,cod_allowed,minimum order quantity,total allowed quantity,is cancelable,cancelable till,image,stock,availability,tag id,attribute value ids,price,special price,branch_id
+134,simple_product,0,Special Indori Ragada Poha,Poha,1,200,0,1,100,0,,uploads/media/2022/ragada-poha.jpg,100,1,10,,150,120,9
