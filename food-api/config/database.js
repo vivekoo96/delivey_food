@@ -4,8 +4,8 @@ require('dotenv').config();
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: '',
-  database: process.env.DB_NAME || 'gavathiparty',
+  password: process.env.DB_PASSWORD || 'root',
+  database: process.env.DB_NAME || 'delivery_food',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
