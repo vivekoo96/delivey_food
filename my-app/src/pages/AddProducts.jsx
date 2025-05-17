@@ -81,53 +81,23 @@ const [branches, setBranches] = useState([]);
     try {
       const formData = new FormData();
 
-      // Append all form fields to FormData
+      // Add all regular fields from data
       Object.keys(data).forEach((key) => {
         formData.append(key, data[key]);
       });
-
-      // Append additional fields explicitly
-      formData.append('name', data.name || '');
-      formData.append('short_description', data.short_description || '');
-      formData.append('indicator', data.indicator || '');
-      formData.append('highlights', data.highlights || '');
-      formData.append('calories', data.calories || '');
-      formData.append('total_allowed_quantity', data.total_allowed_quantity || '');
-      formData.append('minimum_order_quantity', data.minimum_order_quantity || '');
-      formData.append('product_category_id', data.product_category_id || '');
-      formData.append('cancelable_till', data.cancelable_till || '');
-      formData.append('simple_price', data.simple_price || '');
-      formData.append('simple_special_price', data.simple_special_price || '');
-      formData.append('product_total_stock', data.product_total_stock || '');
-      formData.append('stock_status', data.stock_status || '');
-      formData.append('product_start_time', data.product_start_time || '');
-      formData.append('product_end_time', data.product_end_time || '');
-      // formData.append('branch_id', branchId || 'dummy_branch_id');
+      formData.append('product_type', productType);
+      formData.append('tags', JSON.stringify(selectedTags.map(tag => tag.value)));
       formData.append('product_add_ons', JSON.stringify(productAddOns));
 
-      // Ensure 'mainImage' is appended only once
-      if (mainImage) {
-        if (!formData.has('mainImage')) {
-          formData.append('mainImage', mainImage); // Append the file
-        }
-      } else {
-        alert('Main image is required.');
-        return;
-      }
 
-      // Ensure 'is_spicy' is included in the payload
-      formData.append('is_spicy', data.is_spicy || false);
-
-      // Ensure all fields are included
-      console.log('Final FormData before submission:');
+      // Debug
       for (let [key, value] of formData.entries()) {
         console.log(`${key}:`, value);
       }
 
-      // Send the form data to the backend
-      const response = await api.post('/products/add', formData); // Removed manual Content-Type header
+      const response = await api.post('/products/add', formData);
 
-      if (response.status === 200) {
+      if (response.status === 201) {
         alert('Product saved successfully!');
       } else {
         alert('Failed to save product.');
@@ -137,6 +107,7 @@ const [branches, setBranches] = useState([]);
       alert('An error occurred while saving the product.');
     }
   };
+
 
   const handleImageUpload = (file) => {
     if (file) {

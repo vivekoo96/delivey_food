@@ -6,108 +6,75 @@ const { processBulkUpload } = require("../services/bulkUploadService");
 const TicketType = require('../models/TicketType');
 
 // Add a new product with related data
-exports.addProduct = (req, res) => {
-  const productData = req.body;
-
-  productData.id = null; // Ensure `id` is set to null for auto-increment
-  productData.category_id = req.body.category_id || null;
-  productData.branch_id = req.body.branch_id || null;
-  productData.tax = req.body.tax || null;
-  productData.row_order = req.body.row_order || 0;
-  productData.type = req.body.type || null;
-  productData.stock_type = req.body.stock_type || null;
-  productData.name = req.body.name || null;
-  productData.short_description = req.body.short_description || null;
-  productData.slug = req.body.slug || null;
-  productData.indicator = req.body.indicator || null;
-  productData.calories = req.body.calories || null;
-  productData.cod_allowed = req.body.cod_allowed || 0;
-  productData.available_time = req.body.available_time || null;
-  productData.start_time = req.body.start_time || null;
-  productData.end_time = req.body.end_time || null;
-  productData.minimum_order_quantity = req.body.minimum_order_quantity || null;
-  productData.quantity_step_size = req.body.quantity_step_size || 1;
-  productData.total_allowed_quantity = req.body.total_allowed_quantity || null;
-  productData.is_prices_inclusive_tax = req.body.is_prices_inclusive_tax || 0;
-  productData.is_returnable = req.body.is_returnable || 0;
-  productData.is_cancelable = req.body.is_cancelable || 0;
-  productData.is_spicy = req.body.is_spicy || 0;
-  productData.cancelable_till = req.body.cancelable_till || null;
-  productData.image = req.file ? req.file.filename : null;
-  productData.other_images = req.body.other_images || null;
-  productData.video_type = req.body.video_type || null;
-  productData.video = req.body.video || null;
-  productData.highlights = req.body.highlights || null;
-  productData.warranty_period = req.body.warranty_period || null;
-  productData.guarantee_period = req.body.guarantee_period || null;
-  productData.made_in = req.body.made_in || null;
-  productData.sku = req.body.sku || null;
-  productData.stock = req.body.stock || null;
-  productData.availability = req.body.availability || null;
-  productData.rating = req.body.rating || 0;
-  productData.no_of_ratings = req.body.no_of_ratings || 0;
-  productData.description = req.body.description || null;
-  productData.deliverable_type = req.body.deliverable_type || 1;
-  productData.deliverable_zipcodes = req.body.deliverable_zipcodes || null;
-  productData.status = req.body.status || 1;
-  productData.date_added = new Date();
-
-  // Parse arrays sent as JSON strings
+// controllers/productController.js
+exports.addProduct = async (req, res) => {
   try {
-    productData.addOns = productData.addOns ? JSON.parse(productData.addOns) : [];
-    productData.attributes = productData.attributes ? JSON.parse(productData.attributes) : [];
-    productData.tags = productData.tags ? JSON.parse(productData.tags) : [];
-    productData.product_add_ons = productData.product_add_ons
-      ? JSON.parse(productData.product_add_ons)
-      : [];
-  } catch (parseErr) {
-    return res.status(400).json({ error: "Invalid JSON in addOns, attributes, tags, or product_add_ons" });
+    const data = req.body;
+
+    const productData = {
+      name: data.name,
+      short_description: data.short_description,
+      slug: generateSlug(data.name),
+      type: data.product_type,
+      category_id: data.product_category_id,
+      branch_id: data.branch_id,
+      indicator: data.indicator,
+      image: req.file ? req.file.filename : null,
+      total_allowed_quantity: data.total_allowed_quantity || null,
+      minimum_order_quantity: data.minimum_order_quantity || 1,
+      highlights: data.highlights || '',
+      calories: data.calories || 0,
+      start_time: data.product_start_time || '00:00:00',
+      end_time: data.product_end_time || '00:00:00',
+      tax: data.pro_input_tax || 0,
+      stock_type: determineStockType(data),
+      stock: data.product_total_stock || null,
+      availability: data.simple_product_stock_status || null,
+      sku: data.product_sku || null,
+      cod_allowed: data.cod_allowed ? 1 : 0,
+      available_time: data.available_time ? 1 : 0,
+      is_cancelable: data.is_cancelable ? 1 : 0,
+      cancelable_till: data.cancelable_till || '',
+      is_spicy: data.is_spicy ? 1 : 0,
+      is_prices_inclusive_tax: 0,
+    };
+
+    const tagsArray = data.tags || [];
+    const addOns = data.product_add_ons || [];
+    const variants = data.variants || [];
+    const attributeValues = data.attribute_values || null;
+
+    const result = await Product.add(productData, tagsArray, addOns, variants, attributeValues);
+    console.log(result);
+    return res.status(201).json({
+      success: true,
+      message: "Product created successfully",
+      data: result
+    });
+
+  } catch (err) {
+    console.error("Error in addProduct:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Product creation failed",
+      error: err.message
+    });
   }
-
-  // Main image is required
-  if (!productData.image) {
-    return res.status(400).json({ error: "Main image is required" });
-  }
-
-  // Log for debugging
-  console.log("Product Data:", productData);
-
-  // Insert the product into the database
-  Product.add(productData, (err, result) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-
-    const productId = result.insertId || result.id;
-
-    // Add related data (optional, non-blocking)
-    if (Array.isArray(productData.addOns)) {
-      productData.addOns.forEach((addOn) => {
-        ProductAddOns.create({ product_id: productId, ...addOn }, (err) => {
-          if (err) console.error("Error adding add-on:", err.message);
-        });
-      });
-    }
-
-    if (Array.isArray(productData.attributes)) {
-      productData.attributes.forEach((attribute) => {
-        ProductAttributes.create({ product_id: productId, ...attribute }, (err) => {
-          if (err) console.error("Error adding attribute:", err.message);
-        });
-      });
-    }
-
-    if (Array.isArray(productData.tags)) {
-      productData.tags.forEach((tag) => {
-        ProductTags.create({ product_id: productId, tag_id: tag }, (err) => {
-          if (err) console.error("Error adding tag:", err.message);
-        });
-      });
-    }
-
-    res.status(201).json({ message: "Product added successfully", productId });
-  });
 };
+
+
+function generateSlug(name) {
+  return name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+}
+
+function determineStockType(data) {
+  if (data.product_type === 'simple_product') {
+    return data.simple_product_stock_status ? 0 : null;
+  } else if (data.variant_stock_level_type) {
+    return data.variant_stock_level_type === 'product_level' ? 1 : 2;
+  }
+  return null;
+}
 
 
 

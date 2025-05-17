@@ -46,8 +46,9 @@ const categoryUpload = upload.fields([
 
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:5173', // Allow requests from the frontend
-  credentials: true, // Allow cookies and other credentials
+  origin: 'http://localhost:5173', // replace with your frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
 }));
 
 // Serve the 'uploads' folder publicly
@@ -56,8 +57,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Debugging middleware to log incoming FormData fields
 app.use((req, res, next) => {
   if (req.method === 'POST' && req.headers['content-type']?.includes('multipart/form-data')) {
-    console.log('FormData fields:', req.body);
-    console.log('Files:', req.files);
+    //
   }
   next();
 });

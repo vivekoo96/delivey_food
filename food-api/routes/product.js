@@ -3,29 +3,25 @@ const router = express.Router();
 const productController = require("../controllers/productController");
 const multer = require("multer");
 const ticketController = require('../controllers/productController');
-
-// Multer setup for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
-const upload = multer({ storage });
+const upload = require('../middleware/upload');
 
 // Routes
 router.post(
   "/add",
-  upload.single("mainImage"), // This must run first
+  upload.single("mainImage"),
   (req, res, next) => {
-    // console.log("Incoming headers:", req.headers);
-    // console.log("Incoming fields (req.body):", req.body);
-    // console.log("Incoming files (req.file):", req.file);
+    console.log("✅ Middleware hit: file and body received");
     next();
   },
-  productController.addProduct
+  async (req, res, next) => {
+    try {
+      console.log("✅ Controller called");
+      await productController.addProduct(req, res);
+    } catch (err) {
+      console.error("❌ Error in route handler:", err);
+      res.status(500).json({ success: false, message: "Unexpected server error", error: err.message });
+    }
+  }
 );
 router.get("/", productController.getProducts);
 router.get("/:id", productController.getProductById);
